@@ -65,7 +65,7 @@ app.post('/api/location', async (req, res) => {
         return res.status(400).send('Longitude and latitude are required');
     }
     try {
-        location = { lng, lat }; // Store location
+        location = { lng, lat }; 
         res.send(`Reserved location at longitude: ${lng}, latitude: ${lat}`);
     } catch (error) {
         console.error(error);
@@ -74,10 +74,14 @@ app.post('/api/location', async (req, res) => {
 });
 
 app.get('/api/location', (req, res) => {
-    if (!location.lng || !location.lat) {
-        return res.status(400).send('No location set');
+    try {
+        if (!location.lng || !location.lat) {
+            return res.status(200).send('No location set');
+        }
+        res.json(location);
+    } catch (error) {
+        res.send(error)
     }
-    res.json(location);
 });
 
 app.post('/api/login', async (req, res) => {
