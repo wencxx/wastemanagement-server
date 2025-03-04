@@ -6,6 +6,7 @@ const connectDB = require('./config/mongooseConfig');
 const User = require('./models/User');
 const Resident = require('./models/Resident');
 const Purok = require('./models/Purok');
+const Schedules = require('./models/Schedules');
 
 const app = express();
 app.use(express.json())
@@ -126,6 +127,31 @@ app.get('/api/purok', async (req, res) => {
             res.send(puroks)
         }else{
             res.send({ message: 'No purok found' })
+        }
+    } catch (error) {
+        res.send(error)
+    }
+});
+
+app.post('/api/schedules', async (req, res) => {
+    try {
+        const response = await Schedules.create(req.body);
+        if(response){
+            res.send('Scheduled a collection')
+        } 
+        // res.send(req.body)
+    } catch (error) {
+        res.send(error)
+    }
+});
+
+app.get('/api/schedules', async (req, res) => {
+    try {
+        const schedules = await Schedules.find();
+        if(schedules.length){
+            res.send(schedules)
+        }else{
+            res.send({ message: 'No schedules found' })
         }
     } catch (error) {
         res.send(error)
