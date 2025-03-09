@@ -61,10 +61,11 @@ app.get('/api/residents', async (req, res) => {
 });
 
 app.post('/api/location', async (req, res) => {
-    const { lng, lat } = req.query;
+    const { lng, lat } = req.body;
     if (!lng || !lat) {
         return res.status(400).send('Longitude and latitude are required');
     }
+    
     try {
         location = { lng, lat }; 
         res.send(`Reserved location at longitude: ${lng}, latitude: ${lat}`);
