@@ -148,7 +148,7 @@ app.post('/api/location', async (req, res) => {
             }
         } else {
             res.send(`Location is farther than 15 km (${distance.toFixed(2)} km)`);
-            lastNotified.delete(notificationKey); 
+            lastNotified.delete(notificationKey);
         }
     } catch (error) {
         console.error(error);
@@ -239,6 +239,36 @@ app.get('/api/schedules', async (req, res) => {
         res.send(error)
     }
 });
+
+app.post('/api/send-message', async (req, res) => {
+    const { location, message } = req.body
+
+    if (!location && !message) return res.send('Purok or message is missing')
+
+    try {
+        const residents = await Resident.find({
+            location: location
+        })
+
+        if (residents.length) {
+            for (const resident of residents) {
+                client.messages.create({
+                    body: message,
+                    from: '+19894690660',
+                    to: `+63${resident.phone}`
+                }).then(message => console.log(`Message sent to ${resident.phone}: ${message.sid}`))
+                    .catch(error => console.error(`Failed to send message to ${resident.phone}: ${error}`));
+            }
+
+            res.send('Message sent successfully')
+        }else{
+            res.send('No residents in this location.')
+        }
+    } catch (error) {
+        console.log(error)
+        res.send(error)
+    }
+})
 
 connectDB();
 
