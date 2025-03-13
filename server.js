@@ -1,16 +1,18 @@
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken'); // Add this line
+const jwt = require('jsonwebtoken');
 const connectDB = require('./config/mongooseConfig');
 const User = require('./models/User');
 const Resident = require('./models/Resident');
 const Purok = require('./models/Purok');
 const Schedules = require('./models/Schedules');
+const moment = require('moment');
+const twilio = require('twilio');
 
 const app = express();
-app.use(express.json())
-app.use(cors())
+app.use(express.json());
+app.use(cors());
 
 const verifyToken = (req, res, next) => {
     const token = req.header('x-auth-token');
@@ -18,7 +20,7 @@ const verifyToken = (req, res, next) => {
         return res.status(401).send('No token, authorization denied');
     }
     try {
-        const decoded = jwt.verify(token, 'waste_secret'); // Replace 'your_jwt_secret' with your actual secret
+        const decoded = jwt.verify(token, 'waste_secret');
         req.user = decoded.user;
         next();
     } catch (error) {
@@ -26,7 +28,14 @@ const verifyToken = (req, res, next) => {
     }
 };
 
+const now = new Date();
+
 let location = {};
+
+// Twilio configuration
+const accountSid = 'AC0edb0d5400983639aeb759c44f4f7da4';
+const authToken = '102938fee90038207fb842430a9a46da';
+const client = twilio(accountSid, authToken);
 
 app.post('/api/users', async (req, res) => {
     try {
@@ -44,7 +53,7 @@ app.post('/api/users', async (req, res) => {
 app.post('/api/residents', async (req, res) => {
     try {
         const newResident = await Resident.create(req.body);
-        res.send(newResident);
+        res.send('Added new resident');
     } catch (error) {
         console.error(error);
         res.status(500).send('Server Error');
@@ -60,15 +69,87 @@ app.get('/api/residents', async (req, res) => {
     }
 });
 
+function getDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+
+    return distance;
+}
+
+function toRad(value) {
+    return value * Math.PI / 180;
+}
+
+const lastNotified = new Map();
+
 app.post('/api/location', async (req, res) => {
     const { lng, lat } = req.body;
+
     if (!lng || !lat) {
         return res.status(400).send('Longitude and latitude are required');
     }
-    
+
+    location = {
+        lat: lat,
+        lng: lng,
+    }
+
+    const now = moment().toISOString();
+
     try {
-        location = { lng, lat }; 
-        res.send(`Reserved location at longitude: ${lng}, latitude: ${lat}`);
+        const schedule = await Schedules.findOne({
+            start: { $lte: now },
+            end: { $gte: now },
+            title: 'Trash Collection'
+        });
+
+        if (!schedule) {
+            return res.status(404).send('No active schedule found');
+        }
+
+        const purok = await Purok.findById(schedule.purokID);
+
+        if (!purok) {
+            return res.status(404).send('Purok not found');
+        }
+
+        const residents = await Resident.find({
+            location: purok.name
+        });
+
+        const distance = getDistance(lat, lng, purok.lat, purok.lng);
+        const notificationKey = `${schedule._id}-${purok._id}`;
+
+        if (distance <= 15) {
+            if (!lastNotified.has(notificationKey)) {
+                const residentNames = residents.map(resident => resident.name).join(', ');
+                res.send(`Location is within 15 km of the purok (${distance.toFixed(2)} km). Residents: ${residentNames}`);
+
+                for (const resident of residents) {
+                    client.messages.create({
+                        body: `Hello ${resident.name}, the trash collection is within 15 km of your location.`,
+                        from: '+19894690660',
+                        to: `+63${resident.phone}`
+                    }).then(message => console.log(`Message sent to ${resident.phone}: ${message.sid}`))
+                        .catch(error => console.error(`Failed to send message to ${resident.phone}: ${error}`));
+                }
+
+                lastNotified.set(notificationKey, true);
+            } else {
+                res.send(`Location is still within 15 km (${distance.toFixed(2)} km). No new notification sent.`);
+            }
+        } else {
+            res.send(`Location is farther than 15 km (${distance.toFixed(2)} km)`);
+            lastNotified.delete(notificationKey); 
+        }
     } catch (error) {
         console.error(error);
         res.status(500).send('Server Error');
@@ -113,9 +194,9 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/purok', async (req, res) => {
     try {
         const res = await Purok.create(req.body);
-        if(res){
+        if (res) {
             res.send('adasd')
-        }   
+        }
     } catch (error) {
         res.send(error)
     }
@@ -124,9 +205,9 @@ app.post('/api/purok', async (req, res) => {
 app.get('/api/purok', async (req, res) => {
     try {
         const puroks = await Purok.find();
-        if(puroks.length){
+        if (puroks.length) {
             res.send(puroks)
-        }else{
+        } else {
             res.send({ message: 'No purok found' })
         }
     } catch (error) {
@@ -137,9 +218,9 @@ app.get('/api/purok', async (req, res) => {
 app.post('/api/schedules', async (req, res) => {
     try {
         const response = await Schedules.create(req.body);
-        if(response){
+        if (response) {
             res.send('Scheduled a collection')
-        } 
+        }
         // res.send(req.body)
     } catch (error) {
         res.send(error)
@@ -149,9 +230,9 @@ app.post('/api/schedules', async (req, res) => {
 app.get('/api/schedules', async (req, res) => {
     try {
         const schedules = await Schedules.find();
-        if(schedules.length){
+        if (schedules.length) {
             res.send(schedules)
-        }else{
+        } else {
             res.send({ message: 'No schedules found' })
         }
     } catch (error) {
@@ -161,5 +242,5 @@ app.get('/api/schedules', async (req, res) => {
 
 connectDB();
 
-const PORT = process.env.PORT || 5000;  
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
