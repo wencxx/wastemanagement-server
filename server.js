@@ -50,6 +50,29 @@ app.post('/api/users', async (req, res) => {
     }
 });
 
+app.get('/api/users', async (req, res) => {
+    try {
+        const users = await User.find();
+        res.send(users);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server Error');
+    }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+        res.send('User deleted successfully');
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server Error');
+    }
+});
+
 app.post('/api/residents', async (req, res) => {
     try {
         const newResident = await Resident.create(req.body);
@@ -66,6 +89,19 @@ app.get('/api/residents', async (req, res) => {
         res.send(residents);
     } catch (error) {
         console.log(error);
+    }
+});
+
+app.delete('/api/residents/:id', async (req, res) => {
+    try {
+        const resident = await Resident.findByIdAndDelete(req.params.id);
+        if (!resident) {
+            return res.status(404).send('Resident not found');
+        }
+        res.send('Resident deleted successfully');
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server Error');
     }
 });
 
@@ -237,6 +273,19 @@ app.get('/api/schedules', async (req, res) => {
         }
     } catch (error) {
         res.send(error)
+    }
+});
+
+app.delete('/api/schedules/:id', async (req, res) => {
+    try {
+        const schedule = await Schedules.findByIdAndDelete(req.params.id);
+        if (!schedule) {
+            return res.status(404).send('Schedule not found');
+        }
+        res.send({ message: 'Schedule deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server Error');
     }
 });
 
