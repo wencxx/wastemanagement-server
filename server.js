@@ -251,6 +251,19 @@ app.get('/api/purok', async (req, res) => {
     }
 });
 
+app.delete('/api/purok/:id', async (req, res) => {
+    try {
+        const purok = await Purok.findByIdAndDelete(req.params.id);
+        if (!purok) {
+            return res.status(404).send('Purok not found');
+        }
+        res.send('Purok deleted successfully');
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server Error');
+    }
+});
+
 app.post('/api/schedules', async (req, res) => {
     try {
         const response = await Schedules.create(req.body);
@@ -265,14 +278,23 @@ app.post('/api/schedules', async (req, res) => {
 
 app.get('/api/schedules', async (req, res) => {
     try {
-        const schedules = await Schedules.find();
+        const { purokID, start, end } = req.query;
+        let query = {};
+        if (purokID && start && end) {
+            query = {
+                purokID,
+                start: { $lte: end },
+                end: { $gte: start },
+            };
+        }
+        const schedules = await Schedules.find(query);
         if (schedules.length) {
-            res.send(schedules)
+            res.send(schedules);
         } else {
-            res.send({ message: 'No schedules found' })
+            res.send({ message: 'No schedules found' });
         }
     } catch (error) {
-        res.send(error)
+        res.send(error);
     }
 });
 
