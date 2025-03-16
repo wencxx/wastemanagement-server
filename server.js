@@ -311,6 +311,34 @@ app.delete('/api/schedules/:id', async (req, res) => {
     }
 });
 
+app.get('/api/todays-schedules', async (req, res) => {
+    try {
+        const startOfDay = moment().startOf('day').toISOString();
+        const endOfDay = moment().endOf('day').toISOString();
+
+        const schedules = await Schedules.find({
+            start: { $lte: endOfDay },
+            end: { $gte: startOfDay },
+        });
+
+        if (schedules.length) {
+            const schedulesWithPurok = await Promise.all(schedules.map(async (schedule) => {
+                const purok = await Purok.findById(schedule.purokID).lean();
+                return {
+                    ...schedule._doc,
+                    purokName: purok ? purok.name : 'N/A'
+                };
+            }));
+            res.send(schedulesWithPurok);
+        } else {
+            res.send({ message: 'No schedules found for today' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server Error');
+    }
+});
+
 app.post('/api/send-message', async (req, res) => {
     const { location, message } = req.body
 
