@@ -33,8 +33,8 @@ const now = new Date();
 let location = {};
 
 // Twilio configuration
-const accountSid = 'AC0edb0d5400983639aeb759c44f4f7da4';
-const authToken = '102938fee90038207fb842430a9a46da';
+const accountSid = 'AC2b20c9a5b47656e58b8f1d23f8facb5e';
+const authToken = '3bad5eaf87f2c8dcfa7240fc60ad468c';
 const client = twilio(accountSid, authToken);
 
 app.post('/api/users', async (req, res) => {
@@ -172,7 +172,7 @@ app.post('/api/location', async (req, res) => {
                 for (const resident of residents) {
                     client.messages.create({
                         body: `Hello ${resident.name}, the trash collection is within 15 km of your location.`,
-                        from: '+19894690660',
+                        from: '+14128229449',
                         to: `+63${resident.phone}`
                     }).then(message => console.log(`Message sent to ${resident.phone}: ${message.sid}`))
                         .catch(error => console.error(`Failed to send message to ${resident.phone}: ${error}`));
@@ -353,7 +353,7 @@ app.post('/api/send-message', async (req, res) => {
             for (const resident of residents) {
                 client.messages.create({
                     body: message,
-                    from: '+19894690660',
+                    from: '+14128229449',
                     to: `+63${resident.phone}`
                 }).then(message => console.log(`Message sent to ${resident.phone}: ${message.sid}`))
                     .catch(error => console.error(`Failed to send message to ${resident.phone}: ${error}`));
