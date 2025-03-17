@@ -35,6 +35,7 @@ let location = {};
 // Twilio configuration
 const accountSid = 'AC2b20c9a5b47656e58b8f1d23f8facb5e';
 const authToken = '3bad5eaf87f2c8dcfa7240fc60ad468c';
+const MessagingServiceSid = 'VA2a52ef9339601800c5a6a5b9233de43d' 
 const client = twilio(accountSid, authToken);
 
 app.post('/api/users', async (req, res) => {
@@ -172,7 +173,7 @@ app.post('/api/location', async (req, res) => {
                 for (const resident of residents) {
                     client.messages.create({
                         body: `Hello ${resident.name}, the trash collection is within 15 km of your location.`,
-                        from: '+14128229449',
+                        messagingServiceSid: MessagingServiceSid,
                         to: `+63${resident.phone}`
                     }).then(message => console.log(`Message sent to ${resident.phone}: ${message.sid}`))
                         .catch(error => console.error(`Failed to send message to ${resident.phone}: ${error}`));
@@ -353,7 +354,7 @@ app.post('/api/send-message', async (req, res) => {
             for (const resident of residents) {
                 client.messages.create({
                     body: message,
-                    from: '+14128229449',
+                    messagingServiceSid: MessagingServiceSid,
                     to: `+63${resident.phone}`
                 }).then(message => console.log(`Message sent to ${resident.phone}: ${message.sid}`))
                     .catch(error => console.error(`Failed to send message to ${resident.phone}: ${error}`));
