@@ -12,7 +12,7 @@ const twilio = require('twilio');
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: 'https://wastemanagement-sigma.vercel.app/' }));
 
 const verifyToken = (req, res, next) => {
     const token = req.header('x-auth-token');
