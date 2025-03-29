@@ -35,7 +35,7 @@ let location = {};
 // Twilio configuration
 const accountSid = 'AC2b20c9a5b47656e58b8f1d23f8facb5e';
 const authToken = '3bad5eaf87f2c8dcfa7240fc60ad468c';
-const MessagingServiceSid = 'VA2a52ef9339601800c5a6a5b9233de43d' 
+const MessagingServiceSid = 'VA2a52ef9339601800c5a6a5b9233de43d'
 const client = twilio(accountSid, authToken);
 
 app.post('/api/users', async (req, res) => {
@@ -361,7 +361,7 @@ app.post('/api/send-message', async (req, res) => {
             }
 
             res.send('Message sent successfully')
-        }else{
+        } else {
             res.send('No residents in this location.')
         }
     } catch (error) {
@@ -369,6 +369,11 @@ app.post('/api/send-message', async (req, res) => {
         res.send(error)
     }
 })
+
+app.post("/api/serial", (req, res) => {
+    console.log("Received Serial Data:", req.body.serialData);
+    res.send("Data Received");
+});
 
 connectDB();
 
