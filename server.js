@@ -9,24 +9,24 @@ const Purok = require('./models/Purok');
 const Schedules = require('./models/Schedules');
 const moment = require('moment');
 const twilio = require('twilio');
-// const { WebSocketServer } = require("ws");
+const { WebSocketServer } = require("ws");
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: 'https://wastemanagement-sigma.vercel.app' })); 
 
-// const wss = new WebSocketServer({ port: 8080 });
-// let espSocket = null;
+const wss = new WebSocketServer({ port: 8080 });
+let espSocket = null;
 
-// wss.on("connection", (ws) => {
-//     console.log("ESP32 connected via WebSocket");
-//     espSocket = ws;
+wss.on("connection", (ws) => {
+    console.log("ESP32 connected via WebSocket");
+    espSocket = ws;
 
-//     ws.on("close", () => {
-//         console.log("ESP32 disconnected");
-//         espSocket = null;
-//     });
-// });
+    ws.on("close", () => {
+        console.log("ESP32 disconnected");
+        espSocket = null;
+    });
+});
 
 
 const verifyToken = (req, res, next) => {
@@ -355,36 +355,36 @@ app.get('/api/todays-schedules', async (req, res) => {
     }
 });
 
-// app.post('/api/send-message', async (req, res) => {
-//     const { location, message } = req.body;
+app.post('/api/send-message', async (req, res) => {
+    const { location, message } = req.body;
 
-//     // Corrected validation check
-//     if (!location || !message) {
-//         return res.status(400).send('Purok or message is missing');
-//     }
+    // Corrected validation check
+    if (!location || !message) {
+        return res.status(400).send('Purok or message is missing');
+    }
 
-//     try {
-//         const residents = await Resident.find({ location });
+    try {
+        const residents = await Resident.find({ location });
 
-//         if (!espSocket) {
-//             return res.status(500).json({ error: "ESP32 not connected" });
-//         }
+        if (!espSocket) {
+            return res.status(500).json({ error: "ESP32 not connected" });
+        }
 
-//         if (residents.length === 0) {
-//             return res.status(404).send('No residents in this location.');
-//         }
+        if (residents.length === 0) {
+            return res.status(404).send('No residents in this location.');
+        }
 
-//         for (const resident of residents) {
-//             espSocket.send(JSON.stringify({ number: resident.phone, message }));
-//         }
+        for (const resident of residents) {
+            espSocket.send(JSON.stringify({ number: resident.phone, message }));
+        }
 
-//         res.send('Message sent successfully');
+        res.send('Message sent successfully');
 
-//     } catch (error) {
-//         console.error("Error sending message:", error);
-//         res.status(500).send("Internal Server Error");
-//     }
-// });
+    } catch (error) {
+        console.error("Error sending message:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
 
 connectDB();
 
