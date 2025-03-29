@@ -9,25 +9,10 @@ const Purok = require('./models/Purok');
 const Schedules = require('./models/Schedules');
 const moment = require('moment');
 const twilio = require('twilio');
-const { WebSocketServer } = require("ws");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
-
-const wss = new WebSocketServer({ port: 8080 });
-let espSocket = null;
-
-wss.on("connection", (ws) => {
-    console.log("ESP32 connected via WebSocket");
-    espSocket = ws;
-
-    ws.on("close", () => {
-        console.log("ESP32 disconnected");
-        espSocket = null;
-    });
-});
-
 
 const verifyToken = (req, res, next) => {
     const token = req.header('x-auth-token');
@@ -375,7 +360,12 @@ app.post('/api/send-message', async (req, res) => {
         }
 
         for (const resident of residents) {
-            espSocket.send(JSON.stringify({ number: resident.phone, message }));
+            client.messages.create({
+                body: message,
+                messagingServiceSid: MessagingServiceSid,
+                to: `+63${resident.phone}`
+            }).then(message => console.log(`Message sent to ${resident.phone}: ${message.sid}`))
+                .catch(error => console.error(`Failed to send message to ${resident.phone}: ${error}`));
         }
 
         res.send('Message sent successfully');
