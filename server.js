@@ -13,7 +13,7 @@ const { WebSocketServer } = require("ws");
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: 'https://wastemanagement-sigma.vercel.app' })); 
+app.use(cors());
 
 const wss = new WebSocketServer({ port: 8080 });
 let espSocket = null;
