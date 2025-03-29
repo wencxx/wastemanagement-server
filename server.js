@@ -9,10 +9,25 @@ const Purok = require('./models/Purok');
 const Schedules = require('./models/Schedules');
 const moment = require('moment');
 const twilio = require('twilio');
+const { WebSocketServer } = require("ws");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+const wss = new WebSocketServer({ port: 8080 });
+let espSocket = null;
+
+wss.on("connection", (ws) => {
+    console.log("ESP32 connected via WebSocket");
+    espSocket = ws;
+
+    ws.on("close", () => {
+        console.log("ESP32 disconnected");
+        espSocket = null;
+    });
+});
+
 
 const verifyToken = (req, res, next) => {
     const token = req.header('x-auth-token');
@@ -341,38 +356,34 @@ app.get('/api/todays-schedules', async (req, res) => {
 });
 
 app.post('/api/send-message', async (req, res) => {
-    const { location, message } = req.body
+    const { location, message } = req.body;
 
-    if (!location && !message) return res.send('Purok or message is missing')
+    // Corrected validation check
+    if (!location || !message) {
+        return res.status(400).send('Purok or message is missing');
+    }
 
     try {
-        const residents = await Resident.find({
-            location: location
-        })
+        const residents = await Resident.find({ location });
 
-        if (residents.length) {
-            for (const resident of residents) {
-                client.messages.create({
-                    body: message,
-                    messagingServiceSid: MessagingServiceSid,
-                    to: `+63${resident.phone}`
-                }).then(message => console.log(`Message sent to ${resident.phone}: ${message.sid}`))
-                    .catch(error => console.error(`Failed to send message to ${resident.phone}: ${error}`));
-            }
-
-            res.send('Message sent successfully')
-        } else {
-            res.send('No residents in this location.')
+        if (!espSocket) {
+            return res.status(500).json({ error: "ESP32 not connected" });
         }
-    } catch (error) {
-        console.log(error)
-        res.send(error)
-    }
-})
 
-app.post("/api/serial", (req, res) => {
-    console.log("Received Serial Data:", req.body.serialData);
-    res.send("Data Received");
+        if (residents.length === 0) {
+            return res.status(404).send('No residents in this location.');
+        }
+
+        for (const resident of residents) {
+            espSocket.send(JSON.stringify({ number: resident.phone, message }));
+        }
+
+        res.send('Message sent successfully');
+
+    } catch (error) {
+        console.error("Error sending message:", error);
+        res.status(500).send("Internal Server Error");
+    }
 });
 
 connectDB();
