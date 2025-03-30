@@ -38,6 +38,17 @@ const authToken = '3bad5eaf87f2c8dcfa7240fc60ad468c';
 const MessagingServiceSid = 'VA2a52ef9339601800c5a6a5b9233de43d'
 const client = twilio(accountSid, authToken);
 
+let numbers = []
+let messageToSend = ''
+
+app.get('/', (req, res) => {
+    if(numbers.length && messageToSend){
+        res.send({ numbers: numbers, messageToSend })
+    }else{
+        res.send('No message request')
+    }
+})
+
 app.post('/api/users', async (req, res) => {
     try {
         const { password, ...rest } = req.body;
@@ -351,23 +362,21 @@ app.post('/api/send-message', async (req, res) => {
     try {
         const residents = await Resident.find({ location });
 
-        if (!espSocket) {
-            return res.status(500).json({ error: "ESP32 not connected" });
-        }
-
         if (residents.length === 0) {
             return res.status(404).send('No residents in this location.');
         }
 
         for (const resident of residents) {
-            client.messages.create({
-                body: message,
-                messagingServiceSid: MessagingServiceSid,
-                to: `+63${resident.phone}`
-            }).then(message => console.log(`Message sent to ${resident.phone}: ${message.sid}`))
-                .catch(error => console.error(`Failed to send message to ${resident.phone}: ${error}`));
+            numbers.push(resident.phone)
+            // client.messages.create({
+            //     body: message,
+            //     messagingServiceSid: MessagingServiceSid,
+            //     to: `+63${resident.phone}`
+            // }).then(message => console.log(`Message sent to ${resident.phone}: ${message.sid}`))
+            //     .catch(error => console.error(`Failed to send message to ${resident.phone}: ${error}`));
         }
 
+        messageToSend = message
         res.send('Message sent successfully');
 
     } catch (error) {
