@@ -372,7 +372,7 @@ app.post('/api/send-message', async (req, res) => {
         }
 
         for (const resident of residents) {
-            numbers.push(resident.phone)
+            numbers.push(`0${resident.phone}`)
             // client.messages.create({
             //     body: message,
             //     messagingServiceSid: MessagingServiceSid,
