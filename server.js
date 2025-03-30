@@ -44,6 +44,11 @@ let messageToSend = ''
 app.get('/', (req, res) => {
     if(numbers.length && messageToSend){
         res.send({ numbers: numbers, messageToSend })
+
+        setTimeout(() => {
+            numbers = []
+            messageToSend = ''
+        }, 7000)
     }else{
         res.send('No message request')
     }
